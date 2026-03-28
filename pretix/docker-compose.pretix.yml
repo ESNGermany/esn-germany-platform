@@ -1,0 +1,140 @@
+x-pretix-environment: &pretix-environment
+  PRETIX_DATABASE_NAME: ${DATABASE_NAME}
+  PRETIX_DATABASE_USER: ${DATABASE_USER}
+  PRETIX_DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+  PRETIX_MAIL_FROM: ${MAIL_ADDRESS}
+  PRETIX_MAIL_HOST: ${MAIL_HOST}
+  PRETIX_MAIL_USER: ${MAIL_USER}
+  PRETIX_MAIL_PASSWORD: ${MAIL_PASSWORD}
+  PRETIX_MAIL_PORT: ${MAIL_PORT}
+  PRETIX_MAIL_TLS: ${MAIL_TLS}
+  PRETIX_METRICS_USER: ${METRICS_USER}
+  PRETIX_METRICS_PASSPHRASE: ${METRICS_PASSWORD}
+  PRETIX_PRETIX_URL: https://tickets.${URL}
+
+services:
+  pretix_init:
+    image: pretix/standalone:2024.7.1
+    environment: *pretix-environment
+    command: migrate
+    volumes:
+      - ./pretix.cfg:/etc/pretix/pretix.cfg:ro
+    networks:
+      - pretix_postgres
+      - pretix_redis
+    depends_on:
+      - pretix_postgres
+      - pretix_redis
+    profiles:
+      - init
+
+  pretix_pretix:
+    build: .
+    labels:
+      ofelia.enabled: true
+      ofelia.job-exec.runperiodic.command: pretix cron
+      ofelia.job-exec.runperiodic.schedule: "@every 30m"
+    environment: *pretix-environment
+    volumes:
+      - ./data/pretix:/data
+      - ./pretix.cfg:/etc/pretix/pretix.cfg:ro
+    networks:
+      - pretix_postgres
+      - pretix_redis
+      - default
+    depends_on:
+      - pretix_postgres
+      - pretix_redis
+    restart: unless-stopped
+
+  pretix_postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - ./data/postgres/:/var/lib/postgresql/data
+    networks:
+      - pretix_postgres
+    restart: unless-stopped
+
+  pretix_redis:
+    image: redis:8-alpine
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - pretix_redis
+    restart: unless-stopped
+
+  pretix_restic:
+    build: ..
+    hostname: pretix_restic
+    init: true
+    labels:
+      ofelia.enabled: true
+      ofelia.job-exec.backup.command: sh /scripts/backup.sh
+      ofelia.job-exec.backup.schedule: 0 3 * * *
+      ofelia.job-exec.prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
+      ofelia.job-exec.prune.schedule: 0 15 * * *
+    environment:
+      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}/pretix
+      RESTIC_PASSWORD: ${BACKUP_PASSWORD}
+      PGHOST: pretix_postgres
+      PGDATABASE: ${DATABASE_NAME}
+      PGUSER: ${DATABASE_USER}
+      PGPASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - ./data/pretix:/pretix
+      - ../data/restic:/restic-repo
+      - ./restic:/scripts:ro
+      - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
+      - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
+    networks:
+      - pretix_postgres
+    depends_on:
+      - pretix_postgres
+    restart: unless-stopped
+
+  pretix_postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_URI: pretix_postgres/postgres?sslmode=disable
+      DATA_SOURCE_USER: ${DATABASE_USER}
+      DATA_SOURCE_PASS: ${DATABASE_PASSWORD}
+    networks:
+      - pretix_postgres
+      - default
+    depends_on:
+      - pretix_postgres
+    restart: unless-stopped
+
+  pretix_redis_exporter:
+    image: oliver006/redis_exporter:v1.77.0-alpine
+    environment:
+      REDIS_ADDR: pretix_redis
+    networks:
+      - pretix_redis
+      - default
+    depends_on:
+      - pretix_redis
+    restart: unless-stopped
+
+  pretix_restic_exporter:
+    image: ngosang/restic-exporter:1.7.0
+    init: true
+    environment:
+      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}/pretix
+      RESTIC_PASSWORD: ${BACKUP_PASSWORD}
+      REFRESH_INTERVAL: 3600
+    volumes:
+      - ../data/restic:/restic-repo:ro
+      - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
+      - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
+    depends_on:
+      - pretix_restic
+    restart: unless-stopped
+
+networks:
+  pretix_postgres:
+  pretix_redis:

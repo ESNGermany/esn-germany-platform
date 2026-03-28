@@ -1,7 +1,2 @@
-/app/data/
-!/app/data/.gitkeep
-/caddy/data
-/db/data/
-/redis/data
-/restic/data/
-.env
+data/
+*.env

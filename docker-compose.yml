@@ -1,221 +1,29 @@
-x-pretix-environment: &pretix-environment
-  PRETIX_DATABASE_NAME: ${DATABASE_NAME}
-  PRETIX_DATABASE_USER: ${DATABASE_USER}
-  PRETIX_DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-  PRETIX_MAIL_FROM: ${MAIL_ADDRESS}
-  PRETIX_MAIL_HOST: ${MAIL_HOST}
-  PRETIX_MAIL_USER: ${MAIL_USER}
-  PRETIX_MAIL_PASSWORD: ${MAIL_PASSWORD}
-  PRETIX_MAIL_PORT: ${MAIL_PORT}
-  PRETIX_MAIL_TLS: ${MAIL_TLS}
-  PRETIX_METRICS_USER: ${METRICS_USER}
-  PRETIX_METRICS_PASSPHRASE: ${METRICS_PASSWORD}
-  PRETIX_PRETIX_URL: https://${URL}
+include:
+  - path: docker-compose.platform.yml
+    env_file:
+      - env/platform.env
+      - env/shared.env
+  - path: pretix/docker-compose.pretix.yml
+    env_file:
+      - env/backup.env
+      - env/metrics.env
+      - env/pretix.env
+      - env/shared.env
 
 services:
-  init:
-    image: pretix/standalone:2024.7.1
-    environment: *pretix-environment
-    command: migrate
-    volumes:
-      - ./app/pretix.cfg:/etc/pretix/pretix.cfg:ro
-    networks:
-      - postgres
-      - redis
-    depends_on:
-      - postgres
-      - redis
-    profiles:
-      - init
-
-  app:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
-    labels:
-      ofelia.enabled: true
-      ofelia.job-exec.runperiodic.command: pretix cron
-      ofelia.job-exec.runperiodic.schedule: "@every 30m"
-    environment: *pretix-environment
-    volumes:
-      - ./app/data:/data
-      - ./app/pretix.cfg:/etc/pretix/pretix.cfg:ro
-    networks:
-      - caddy
-      - postgres
-      - prometheus
-      - redis
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: ${DATABASE_NAME}
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-    volumes:
-      - ./db/data:/var/lib/postgresql/data
-    networks:
-      - postgres
-    restart: unless-stopped
-
-  redis:
-    image: redis:8-alpine
-    volumes:
-      - ./redis/data:/data
-    networks:
-      - redis
-    restart: unless-stopped
-
-  ofelia:
-    image: mcuadros/ofelia:0.3
-    command: daemon --docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
-
-  caddy:
-    image: caddy:2.10-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+  platform_caddy:
     command: >
       sh -c "
         export METRICS_TOKEN=$$(echo -n "$$METRICS_USER:$$METRICS_PASSWORD" | base64)
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
       "
-    environment:
-      EMAIL: ${ACME_EMAIL}
-      METRICS_USER: ${METRICS_USER}
-      METRICS_PASSWORD: ${METRICS_PASSWORD}
-      URL: ${URL}
+    env_file:
+      - env/metrics.env
     volumes:
-      - ./caddy/conf:/etc/caddy:ro
-      - ./caddy/data/config:/config:ro
-      - ./caddy/data/data:/data
-    networks:
-      - caddy
-      - prometheus
-    restart: unless-stopped
-
-  restic:
-    build:
-      context: ./restic
-      dockerfile: Dockerfile
-    hostname: restic
-    init: true
-    labels:
-      ofelia.enabled: true
-      ofelia.job-exec.backup.command: sh /scripts/backup.sh
-      ofelia.job-exec.backup.schedule: 0 3 * * *
-      ofelia.job-exec.prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
-      ofelia.job-exec.prune.schedule: 0 15 * * *
-    environment:
-      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}
-      RESTIC_PASSWORD: ${BACKUP_PASSWORD}
-      PGHOST: postgres
-      PGDATABASE: ${DATABASE_NAME}
-      PGUSER: ${DATABASE_USER}
-      PGPASSWORD: ${DATABASE_PASSWORD}
+      - ./pretix/Caddyfile:/etc/caddy/config/pretix.Caddyfile:ro
+  platform_prometheus:
     volumes:
-      - ./app:/app
-      - ./restic/data:/restic-repo
-      - ./restic/scripts:/scripts:ro
-      - ./.env:/.env
-      - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
-      - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
-    networks:
-      - postgres
-    depends_on:
-      - postgres
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus:v3.5.0
+      - ./pretix/targets.yml:/etc/prometheus/config/pretix.targets.yml:ro
+  platform_grafana:
     volumes:
-      - prometheus:/prometheus
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    networks:
-      - prometheus
-    restart: unless-stopped
-
-  node_exporter:
-    image: quay.io/prometheus/node-exporter:v1.10.2
-    pid: host
-    command:
-      - --path.rootfs=/host
-      - --path.procfs=/host/proc
-      - --path.sysfs=/host/sys
-    volumes:
-      - /:/host:ro,rslave
-    networks:
-      - prometheus
-    restart: unless-stopped
-
-  postgres_exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
-    environment:
-      DATA_SOURCE_URI: postgres/postgres?sslmode=disable
-      DATA_SOURCE_USER: ${DATABASE_USER}
-      DATA_SOURCE_PASS: ${DATABASE_PASSWORD}
-    networks:
-      - postgres
-      - prometheus
-    depends_on:
-      - postgres
-    restart: unless-stopped
-
-  redis_exporter:
-    image: oliver006/redis_exporter:v1.77.0-alpine
-    environment:
-      REDIS_ADDR: redis
-    networks:
-      - prometheus
-      - redis
-    depends_on:
-      - redis
-    restart: unless-stopped
-
-  restic_exporter:
-    image: ngosang/restic-exporter:1.7.0
-    init: true
-    environment:
-      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}
-      RESTIC_PASSWORD: ${BACKUP_PASSWORD}
-      REFRESH_INTERVAL: 3600
-    volumes:
-      - ./restic/data:/restic-repo:ro
-      - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
-      - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
-    networks:
-      - prometheus
-    depends_on:
-      - restic
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:12.2.0
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_USERS_ALLOW_SIGN_UP: false
-      GF_SERVER_DOMAIN: grafana.${URL}
-      GF_SERVER_ROOT_URL: https://grafana.${URL}
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-    networks:
-      - prometheus
-    restart: unless-stopped
-
-volumes:
-  prometheus:
-
-networks:
-  caddy:
-  postgres:
-  prometheus:
-  redis:
+      - ./pretix/dashboard.json:/etc/grafana/dashboards/pretix.dashboard.json

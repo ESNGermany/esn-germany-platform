@@ -4,4 +4,4 @@ providers:
   - name: default
     type: file
     options:
-      path: /etc/grafana/provisioning/dashboards
+      path: /etc/grafana/dashboards

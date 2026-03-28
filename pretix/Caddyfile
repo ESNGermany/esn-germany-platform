@@ -1,0 +1,11 @@
+tickets.{$URL} {
+    import hardened_security
+    reverse_proxy http://pretix_pretix
+}
+
+:8080 {
+    reverse_proxy http://pretix_pretix {
+        header_up Host tickets.{$URL}
+        header_up Authorization "Basic {$METRICS_TOKEN}"
+    }
+}

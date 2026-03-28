@@ -1,0 +1,55 @@
+services:
+  platform_ofelia:
+    image: mcuadros/ofelia:0.3
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  platform_caddy:
+    image: caddy:2.10-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      EMAIL: ${ACME_EMAIL}
+      URL: ${URL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy/config:/config
+      - ./data/caddy/data:/data
+    restart: unless-stopped
+
+  platform_prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - platform_prometheus:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+
+  platform_node_exporter:
+    image: quay.io/prometheus/node-exporter:v1.10.2
+    pid: host
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  platform_grafana:
+    image: grafana/grafana:12.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_DOMAIN: grafana.${URL}
+      GF_SERVER_ROOT_URL: https://grafana.${URL}
+    volumes:
+      - ./provisioning/:/etc/grafana/provisioning:ro
+    restart: unless-stopped
+
+volumes:
+  platform_prometheus:

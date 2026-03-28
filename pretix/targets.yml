@@ -1,0 +1,5 @@
+- targets:
+  - platform_caddy:8080
+  - pretix_postgres_exporter:9187
+  - pretix_redis_exporter:9121
+  - pretix_restic_exporter:8001

@@ -42,7 +42,7 @@
       },
       "targets": [
         {
-          "expr": "100 - (avg(rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[5m])) * 100)",
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{instance=\"platform_node_exporter:9100\",mode=\"idle\"}[5m])) * 100)",
           "legendFormat": "CPU",
           "refId": "A"
         }
@@ -98,7 +98,7 @@
       },
       "targets": [
         {
-          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"}) * 100",
+          "expr": "(1 - node_memory_MemAvailable_bytes{instance=\"platform_node_exporter:9100\"} / node_memory_MemTotal_bytes{instance=\"platform_node_exporter:9100\"}) * 100",
           "legendFormat": "RAM",
           "refId": "A"
         }
@@ -154,7 +154,7 @@
       },
       "targets": [
         {
-          "expr": "(1 - node_filesystem_avail_bytes{job=\"node\",mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"node\",mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100",
+          "expr": "(1 - node_filesystem_avail_bytes{instance=\"platform_node_exporter:9100\",mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{instance=\"platform_node_exporter:9100\",mountpoint=\"/\",fstype!=\"tmpfs\"}) * 100",
           "legendFormat": "Root",
           "refId": "A"
         }
@@ -210,7 +210,7 @@
       },
       "targets": [
         {
-          "expr": "(1 - node_filesystem_avail_bytes{job=\"node\",device=~\"/dev/sdb.*\"} / node_filesystem_size_bytes{job=\"node\",device=~\"/dev/sdb.*\"}) * 100",
+          "expr": "(1 - node_filesystem_avail_bytes{instance=\"platform_node_exporter:9100\",device=~\"/dev/sdb.*\"} / node_filesystem_size_bytes{instance=\"platform_node_exporter:9100\",device=~\"/dev/sdb.*\"}) * 100",
           "legendFormat": "Volume",
           "refId": "A"
         }
@@ -266,12 +266,12 @@
       },
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total{job=\"node\",device!~\"lo|veth.*|docker.*|br-.*\"}[5m])",
+          "expr": "rate(node_network_receive_bytes_total{instance=\"platform_node_exporter:9100\",device!~\"lo|veth.*|docker.*|br-.*\"}[5m])",
           "legendFormat": "Received",
           "refId": "A"
         },
         {
-          "expr": "rate(node_network_transmit_bytes_total{job=\"node\",device!~\"lo|veth.*|docker.*|br-.*\"}[5m])",
+          "expr": "rate(node_network_transmit_bytes_total{instance=\"platform_node_exporter:9100\",device!~\"lo|veth.*|docker.*|br-.*\"}[5m])",
           "legendFormat": "Transmitted",
           "refId": "B"
         }
@@ -359,7 +359,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pretix_view_requests_total{job=\"pretix\"}[5m]))",
+          "expr": "sum(rate(pretix_view_requests_total{instance=\"platform_caddy:8080\"}[5m]))",
           "legendFormat": "req/s",
           "refId": "A"
         }
@@ -403,12 +403,12 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pretix_view_requests_total{job=\"pretix\",status_code=~\"4..\"}[5m])) or vector(0)",
+          "expr": "sum(rate(pretix_view_requests_total{instance=\"platform_caddy:8080\",status_code=~\"4..\"}[5m])) or vector(0)",
           "legendFormat": "4xx",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(pretix_view_requests_total{job=\"pretix\",status_code=~\"5..\"}[5m])) or vector(0)",
+          "expr": "sum(rate(pretix_view_requests_total{instance=\"platform_caddy:8080\",status_code=~\"5..\"}[5m])) or vector(0)",
           "legendFormat": "5xx",
           "refId": "B"
         }
@@ -487,7 +487,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(pretix_view_duration_seconds_bucket{job=\"pretix\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(pretix_view_duration_seconds_bucket{instance=\"platform_caddy:8080\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -552,7 +552,7 @@
       },
       "targets": [
         {
-          "expr": "sum(pretix_celery_tasks_queued_count{job=\"pretix\"})",
+          "expr": "sum(pretix_celery_tasks_queued_count{instance=\"platform_caddy:8080\"})",
           "legendFormat": "Tasks",
           "refId": "A"
         }
@@ -606,7 +606,7 @@
       },
       "targets": [
         {
-          "expr": "max(pretix_celery_tasks_queued_age_seconds{job=\"pretix\"})",
+          "expr": "max(pretix_celery_tasks_queued_age_seconds{instance=\"platform_caddy:8080\"})",
           "legendFormat": "Wait",
           "refId": "A"
         }
@@ -672,7 +672,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (state) (pg_stat_activity_count{job=\"postgres\",datname!~\"template.*|postgres\"})",
+          "expr": "sum by (state) (pg_stat_activity_count{instance=\"pretix_postgres_exporter:9187\",datname!~\"template.*|postgres\"})",
           "legendFormat": "{{ state }}",
           "refId": "A"
         }
@@ -719,7 +719,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_blks_hit{job=\"postgres\",datname!~\"template.*|postgres\"}[5m])) / (sum(rate(pg_stat_database_blks_hit{job=\"postgres\",datname!~\"template.*|postgres\"}[5m])) + sum(rate(pg_stat_database_blks_read{job=\"postgres\",datname!~\"template.*|postgres\"}[5m]))) * 100",
+          "expr": "sum(rate(pg_stat_database_blks_hit{instance=\"pretix_postgres_exporter:9187\",datname!~\"template.*|postgres\"}[5m])) / (sum(rate(pg_stat_database_blks_hit{instance=\"pretix_postgres_exporter:9187\",datname!~\"template.*|postgres\"}[5m])) + sum(rate(pg_stat_database_blks_read{instance=\"pretix_postgres_exporter:9187\",datname!~\"template.*|postgres\"}[5m]))) * 100",
           "legendFormat": "Hit Ratio",
           "refId": "A"
         }
@@ -774,7 +774,7 @@
       },
       "targets": [
         {
-          "expr": "pg_database_size_bytes{job=\"postgres\",datname!~\"template.*|postgres\"}",
+          "expr": "pg_database_size_bytes{instance=\"pretix_postgres_exporter:9187\",datname!~\"template.*|postgres\"}",
           "legendFormat": "{{ datname }}",
           "refId": "A"
         }
@@ -820,7 +820,7 @@
       },
       "targets": [
         {
-          "expr": "redis_memory_used_bytes{job=\"redis\"}",
+          "expr": "redis_memory_used_bytes{instance=\"pretix_redis_exporter:9121\"}",
           "legendFormat": "Used",
           "refId": "A"
         }
@@ -866,7 +866,7 @@
       },
       "targets": [
         {
-          "expr": "(rate(redis_keyspace_hits_total{job=\"redis\"}[5m]) / (rate(redis_keyspace_hits_total{job=\"redis\"}[5m]) + rate(redis_keyspace_misses_total{job=\"redis\"}[5m]))) * 100",
+          "expr": "(rate(redis_keyspace_hits_total{instance=\"pretix_redis_exporter:9121\"}[5m]) / (rate(redis_keyspace_hits_total{instance=\"pretix_redis_exporter:9121\"}[5m]) + rate(redis_keyspace_misses_total{instance=\"pretix_redis_exporter:9121\"}[5m]))) * 100",
           "legendFormat": "Hit Ratio",
           "refId": "A"
         }
@@ -933,7 +933,7 @@
       },
       "targets": [
         {
-          "expr": "(time() - max(restic_backup_timestamp{job=\"restic\"})) / 3600",
+          "expr": "(time() - max(restic_backup_timestamp{instance=\"pretix_restic_exporter:8001\"})) / 3600",
           "legendFormat": "Hours ago",
           "refId": "A"
         }
@@ -988,7 +988,7 @@
       },
       "targets": [
         {
-          "expr": "restic_snapshots_total{job=\"restic\"}",
+          "expr": "restic_snapshots_total{instance=\"pretix_restic_exporter:8001\"}",
           "legendFormat": "Snapshots",
           "refId": "A"
         }
@@ -1033,12 +1033,12 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket{job=\"caddy\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(caddy_http_request_duration_seconds_bucket{instance=\"platform_caddy:2019\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(caddy_http_request_duration_seconds_bucket{job=\"caddy\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(caddy_http_request_duration_seconds_bucket{instance=\"platform_caddy:2019\"}[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "B"
         }

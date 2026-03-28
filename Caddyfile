@@ -1,0 +1,21 @@
+(hardened_security) {
+    tls {
+        curves x25519 secp256r1 secp384r1
+        protocols tls1.3
+    }
+
+    header Strict-Transport-Security "max-age=63072000"
+}
+
+{
+    email {$EMAIL}
+    admin :2019
+    metrics
+}
+
+import config/*.Caddyfile
+
+grafana.{$URL} {
+    import hardened_security
+    reverse_proxy http://platform_grafana:3000
+}
