@@ -1,0 +1,17 @@
+services:
+  platform_caddy:
+    command: >
+      sh -c "
+        export METRICS_TOKEN=$$(echo -n "$$METRICS_USER:$$METRICS_PASSWORD" | base64)
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+      "
+    env_file:
+      - env/metrics.env
+    volumes:
+      - ./pretix/Caddyfile:/etc/caddy/config/pretix.Caddyfile:ro
+  platform_prometheus:
+    volumes:
+      - ./pretix/targets.yml:/etc/prometheus/config/pretix.targets.yml:ro
+  platform_grafana:
+    volumes:
+      - ./pretix/dashboard.json:/etc/grafana/dashboards/pretix.dashboard.json
