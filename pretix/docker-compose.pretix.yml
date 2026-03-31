@@ -45,6 +45,8 @@ services:
     depends_on:
       - pretix_postgres
       - pretix_redis
+    profiles:
+      - pretix
     restart: unless-stopped
 
   pretix_postgres:
@@ -57,6 +59,8 @@ services:
       - ./data/postgres/:/var/lib/postgresql/data
     networks:
       - pretix_postgres
+    profiles:
+      - pretix
     restart: unless-stopped
 
   pretix_redis:
@@ -65,6 +69,8 @@ services:
       - ./data/redis:/data
     networks:
       - pretix_redis
+    profiles:
+      - pretix
     restart: unless-stopped
 
   pretix_restic:
@@ -94,6 +100,8 @@ services:
       - pretix_postgres
     depends_on:
       - pretix_postgres
+    profiles:
+      - pretix
     restart: unless-stopped
 
   pretix_postgres_exporter:
@@ -107,6 +115,8 @@ services:
       - default
     depends_on:
       - pretix_postgres
+    profiles:
+      - pretix
     restart: unless-stopped
 
   pretix_redis_exporter:
@@ -118,6 +128,8 @@ services:
       - default
     depends_on:
       - pretix_redis
+    profiles:
+      - pretix
     restart: unless-stopped
 
   pretix_restic_exporter:
@@ -133,6 +145,8 @@ services:
       - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
     depends_on:
       - pretix_restic
+    profiles:
+      - pretix
     restart: unless-stopped
 
 networks:
