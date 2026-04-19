@@ -1,0 +1,2 @@
+- targets:
+  - vault_restic_exporter:8001

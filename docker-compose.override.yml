@@ -12,10 +12,12 @@ services:
       - ./websites/Caddyfile:/etc/caddy/config/websites.Caddyfile:ro
       - ./websites/data/builder/Caddyfile:/etc/caddy/config/websites.builder.Caddyfile:ro
       - ./websites/data/builder/sites:/srv:ro
+      - ./vault/Caddyfile:/etc/caddy/config/vault.Caddyfile:ro
   platform_prometheus:
     volumes:
       - ./pretix/targets.yml:/etc/prometheus/config/pretix.targets.yml:ro
       - ./websites/targets.yml:/etc/prometheus/config/websites.targets.yml:ro
+      - ./vault/targets.yml:/etc/prometheus/config/vault.targets.yml:ro
   platform_grafana:
     volumes:
       - ./pretix/dashboard.json:/etc/grafana/dashboards/pretix.dashboard.json

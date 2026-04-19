@@ -15,3 +15,8 @@ include:
       - env/metrics.env
       - env/shared.env
       - env/websites.env
+  - path: vault/docker-compose.vault.yml
+    env_file:
+      - env/backup.env
+      - env/shared.env
+      - env/vault.env

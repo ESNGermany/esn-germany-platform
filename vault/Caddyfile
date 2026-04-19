@@ -1,0 +1,9 @@
+www.vault.{$URL} {
+    import hardened_security
+    redir https://vault.{$URL}{uri} permanent
+}
+
+vault.{$URL} {
+    import hardened_security
+    reverse_proxy http://vault_vaultwarden
+}

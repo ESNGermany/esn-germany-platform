@@ -10,3 +10,5 @@ docker compose -f "$ROOT_DIR/docker-compose.yml" run --rm --entrypoint sh pretix
 
 docker compose -f "$ROOT_DIR/docker-compose.yml" run --rm websites_builder
 docker compose -f "$ROOT_DIR/docker-compose.yml" run --rm --entrypoint sh websites_restic -c "restic init"
+
+docker compose -f "$ROOT_DIR/docker-compose.yml" run --rm --entrypoint sh vault_restic -c "restic init"
