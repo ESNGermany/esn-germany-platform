@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
 
   pretix_restic:
-    build: ..
+    build: ../platform
     hostname: pretix_restic
     init: true
     labels:
@@ -92,7 +92,7 @@ services:
       PGPASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - ./data/pretix:/pretix
-      - ../data/restic:/restic-repo
+      - ../platform/data/restic:/restic-repo
       - ./restic:/scripts:ro
       - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
       - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
@@ -140,7 +140,7 @@ services:
       RESTIC_PASSWORD: ${BACKUP_PASSWORD}
       REFRESH_INTERVAL: 3600
     volumes:
-      - ../data/restic:/restic-repo:ro
+      - ../platform/data/restic:/restic-repo:ro
       - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
       - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
     depends_on:

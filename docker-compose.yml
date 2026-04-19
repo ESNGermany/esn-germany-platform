@@ -1,5 +1,5 @@
 include:
-  - path: docker-compose.platform.yml
+  - path: platform/docker-compose.platform.yml
     env_file:
       - env/platform.env
       - env/shared.env
