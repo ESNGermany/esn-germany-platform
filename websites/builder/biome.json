@@ -1,0 +1,36 @@
+{
+  "formatter": {
+    "indentStyle": "space",
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "operatorLinebreak": "before",
+      "quoteStyle": "single"
+    }
+  },
+  "linter": {
+    "domains": {
+      "next": "none",
+      "qwik": "none",
+      "react": "none",
+      "solid": "none",
+      "test": "none",
+      "turborepo": "none",
+      "vue": "none"
+    },
+    "rules": {
+      "a11y": "on",
+      "complexity": "on",
+      "performance": "on",
+      "security": "on",
+      "style": "on",
+      "suspicious": "on"
+    }
+  },
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
+  }
+}

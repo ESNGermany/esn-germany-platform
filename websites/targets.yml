@@ -1,0 +1,6 @@
+- targets:
+  # todo: needs directus update
+  # - platform_caddy:8081
+  - websites_postgres_exporter:9187
+  - websites_redis_exporter:9121
+  - websites_restic_exporter:8001

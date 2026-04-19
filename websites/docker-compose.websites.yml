@@ -1,0 +1,173 @@
+services:
+  websites_builder:
+    build:
+      context: ./builder
+    environment:
+      URL: ${URL}
+    volumes:
+      - ./data/builder:/usr/src/app/dist
+    profiles:
+      - builder
+
+  websites_postgis:
+    image: postgis/postgis:17-3.6-alpine
+    volumes:
+      - ./data/postgis:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    networks:
+      - websites_postgis
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "${DATABASE_NAME}", "-U", "${DATABASE_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_interval: 5s
+      start_period: 30s
+    profiles:
+      - websites
+    restart: unless-stopped
+
+  websites_redis:
+    image: redis:8-alpine
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - websites_redis
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(redis-cli ping) = 'PONG' ]"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_interval: 5s
+      start_period: 30s
+    profiles:
+      - websites
+    restart: unless-stopped
+
+  websites_directus:
+    image: directus/directus:10.10.1
+    volumes:
+      - ./data/directus/extensions:/directus/extensions
+      - ./data/directus/uploads:/directus/uploads
+    depends_on:
+      websites_postgis:
+        condition: service_healthy
+      websites_redis:
+        condition: service_healthy
+    environment:
+      KEY: ${DIRECTUS_KEY}
+      SECRET: ${DIRECTUS_SECRET}
+      DB_CLIENT: pg
+      DB_HOST: websites_postgis
+      DB_PORT: 5432
+      DB_DATABASE: ${DATABASE_NAME}
+      DB_USER: ${DATABASE_USER}
+      DB_PASSWORD: ${DATABASE_PASSWORD}
+      CACHE_ENABLED: true
+      CACHE_STORE: redis
+      REDIS: redis://websites_redis:6379
+      SYNCHRONIZATION_STORE: redis
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD}
+      EMAIL_FROM: ${SMTP_EMAIL_FROM}
+      EMAIL_TRANSPORT: smtp
+      EMAIL_SMTP_HOST: ${SMTP_EMAIL_HOST}
+      EMAIL_SMTP_PORT: ${SMTP_EMAIL_PORT}
+      EMAIL_SMTP_USER: ${SMTP_EMAIL_USER}
+      EMAIL_SMTP_PASSWORD: ${SMTP_EMAIL_PASSWORD}
+      EMAIL_SMTP_SECURE: true
+      PUBLIC_URL: https://directus.${URL}
+      # todo: needs directus update
+      # METRICS_ENABLED: true
+      # METRICS_TOKENS: ${METRICS_PASSWORD}
+    networks:
+      - websites_postgis
+      - websites_redis
+      - default
+    profiles:
+      - websites
+    restart: unless-stopped
+
+  websites_restic:
+    build: ../platform
+    hostname: websites_restic
+    init: true
+    labels:
+      ofelia.enabled: true
+      ofelia.job-exec.backup.command: sh /scripts/backup.sh
+      ofelia.job-exec.backup.schedule: 0 3 * * *
+      ofelia.job-exec.prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
+      ofelia.job-exec.prune.schedule: 0 15 * * *
+    environment:
+      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}/websites
+      RESTIC_PASSWORD: ${BACKUP_PASSWORD}
+      PGHOST: websites_postgis
+      PGDATABASE: ${DATABASE_NAME}
+      PGUSER: ${DATABASE_USER}
+      PGPASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - ./data/directus:/directus
+      - ./data/builder:/builder
+      - ../platform/data/restic:/restic-repo
+      - ./restic:/scripts:ro
+      - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
+      - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
+    networks:
+      - websites_postgis
+    depends_on:
+      - websites_postgis
+    profiles:
+      - websites
+    restart: unless-stopped
+
+  websites_postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_URI: websites_postgis/postgres?sslmode=disable
+      DATA_SOURCE_USER: ${DATABASE_USER}
+      DATA_SOURCE_PASS: ${DATABASE_PASSWORD}
+    networks:
+      - websites_postgis
+      - default
+    depends_on:
+      - websites_postgis
+    profiles:
+      - websites
+    restart: unless-stopped
+
+  websites_redis_exporter:
+    image: oliver006/redis_exporter:v1.77.0-alpine
+    environment:
+      REDIS_ADDR: websites_redis
+    networks:
+      - websites_redis
+      - default
+    depends_on:
+      - websites_redis
+    profiles:
+      - websites
+    restart: unless-stopped
+
+  websites_restic_exporter:
+    image: ngosang/restic-exporter:1.7.0
+    init: true
+    environment:
+      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}/websites
+      RESTIC_PASSWORD: ${BACKUP_PASSWORD}
+      REFRESH_INTERVAL: 3600
+    volumes:
+      - ../platform/data/restic:/restic-repo:ro
+      - ${BACKUP_SSH_PRIVATE_KEY}:/root/.ssh/id_ed25519:ro
+      - ${BACKUP_SSH_KNOWN_HOSTS}:/root/.ssh/known_hosts:ro
+    depends_on:
+      - websites_restic
+    profiles:
+      - websites
+    restart: unless-stopped
+
+networks:
+  websites_postgis:
+  websites_redis:

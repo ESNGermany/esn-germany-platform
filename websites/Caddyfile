@@ -1,0 +1,15 @@
+www.directus.{$URL} {
+    redir https://directus.{$URL}{uri} permanent
+}
+
+directus.{$URL} {
+    import hardened_security
+    reverse_proxy http://websites_directus:8055
+}
+
+# todo: needs directus update
+# :8081 {
+#     reverse_proxy http://websites_directus {
+#         header_up Authorization "Metrics {$METRICS_PASSWORD}"
+#     }
+# }

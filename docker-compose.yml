@@ -9,3 +9,9 @@ include:
       - env/metrics.env
       - env/pretix.env
       - env/shared.env
+  - path: websites/docker-compose.websites.yml
+    env_file:
+      - env/backup.env
+      - env/metrics.env
+      - env/shared.env
+      - env/websites.env
