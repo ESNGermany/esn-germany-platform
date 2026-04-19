@@ -1,4 +1,5 @@
 www.directus.{$URL} {
+    import hardened_security
     redir https://directus.{$URL}{uri} permanent
 }
 
