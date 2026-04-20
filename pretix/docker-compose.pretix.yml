@@ -14,7 +14,7 @@ x-pretix-environment: &pretix-environment
 
 services:
   pretix_init:
-    image: pretix/standalone:2024.7.1
+    image: pretix/standalone:2026.1.2
     environment: *pretix-environment
     command: migrate
     volumes:
