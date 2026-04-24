@@ -97,10 +97,10 @@ services:
     init: true
     labels:
       ofelia.enabled: true
-      ofelia.job-exec.backup.command: sh /scripts/backup.sh
-      ofelia.job-exec.backup.schedule: 0 3 * * *
-      ofelia.job-exec.prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
-      ofelia.job-exec.prune.schedule: 0 15 * * *
+      ofelia.job-exec.websites-backup.command: sh /scripts/backup.sh
+      ofelia.job-exec.websites-backup.schedule: 0 3 * * *
+      ofelia.job-exec.websites-prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
+      ofelia.job-exec.websites-prune.schedule: 0 15 * * *
     environment:
       RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}/websites
       RESTIC_PASSWORD: ${BACKUP_PASSWORD}

@@ -32,8 +32,8 @@ services:
     build: .
     labels:
       ofelia.enabled: true
-      ofelia.job-exec.runperiodic.command: pretix cron
-      ofelia.job-exec.runperiodic.schedule: "@every 30m"
+      ofelia.job-exec.pretix-runperiodic.command: pretix cron
+      ofelia.job-exec.pretix-runperiodic.schedule: "@every 30m"
     environment: *pretix-environment
     volumes:
       - ./data/pretix:/data
@@ -79,10 +79,10 @@ services:
     init: true
     labels:
       ofelia.enabled: true
-      ofelia.job-exec.backup.command: sh /scripts/backup.sh
-      ofelia.job-exec.backup.schedule: 0 3 * * *
-      ofelia.job-exec.prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
-      ofelia.job-exec.prune.schedule: 0 15 * * *
+      ofelia.job-exec.pretix-backup.command: sh /scripts/backup.sh
+      ofelia.job-exec.pretix-backup.schedule: 0 3 * * *
+      ofelia.job-exec.pretix-prune.command: restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 3 --prune
+      ofelia.job-exec.pretix-prune.schedule: 0 15 * * *
     environment:
       RESTIC_REPOSITORY: ${BACKUP_REPOSITORY}/pretix
       RESTIC_PASSWORD: ${BACKUP_PASSWORD}
