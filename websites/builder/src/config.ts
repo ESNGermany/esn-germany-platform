@@ -112,14 +112,13 @@ export const SECTION_CONFIGS: Config[] = [
     cname: 'freiburg',
     redirects: ['esn-freiburg.de'],
   },
-  // todo: set up website
-  // {
-  //   id: 'undefined',
-  //   name: 'ESN Gießen',
-  //   email: 'board@esn-giessen.de',
-  //   cname: 'giessen',
-  // redirects: ['esn-giessen.de'],
-  // },
+  {
+    id: 'f0cb2cf5-63cd-4eb5-89f7-c38bc00f96bc',
+    name: 'ESN Gießen',
+    email: 'board@esn-giessen.de',
+    cname: 'giessen',
+    redirects: ['esn-giessen.de'],
+  },
   {
     id: '0975dc37-0d36-4988-b05c-497376151a9e',
     name: 'ESN Göttingen',
