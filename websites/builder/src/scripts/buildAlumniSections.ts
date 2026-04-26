@@ -16,13 +16,8 @@ export const buildAlumniSections = async (configs: Config[], branch?: string) =>
     await cp(`${TMP_DIR}/repo`, `${TMP_DIR}/${cname}`, { recursive: true });
     const logo = Bun.file(`${TMP_DIR}/${cname}/src/assets/section-logos/${email}.png`);
     await Bun.write(`${TMP_DIR}/${cname}/src/assets/logo/DE-logo-colour.png`, logo);
-
-    await replaceInFile(
-      `${TMP_DIR}/${cname}/src/environments/environment.prod.ts`,
-      'REPLACE_SECTION_NAME',
-      `'${name}'`,
-    );
-
+    await replaceInFile(`${TMP_DIR}/${cname}/src/environments/environment.prod.ts`, 'REPLACE_SECTION_NAME', name);
+    await replaceInFile(`${TMP_DIR}/${cname}/src/environments/environment.prod.ts`, 'REPLACE_SECTION_ID', id);
     await replaceInFile(`${TMP_DIR}/${cname}/src/sitemap.xml`, 'REPLACE_SECTION_URL', domain);
     await replaceInFile(`${TMP_DIR}/${cname}/src/robots.txt`, 'REPLACE_SECTION_URL', domain);
 
