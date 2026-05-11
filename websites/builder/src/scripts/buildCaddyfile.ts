@@ -14,6 +14,7 @@ export const buildCaddyfile = async () => {
   caddyfile += '{$URL} {\n';
   caddyfile += '    import hardened_security\n';
   caddyfile += '    root * /srv/@\n';
+  caddyfile += '    try_files {path} /index.html\n';
   caddyfile += '    file_server\n';
   caddyfile += '}\n';
 
@@ -26,6 +27,7 @@ export const buildCaddyfile = async () => {
     caddyfile += `${cname}.{$URL} {\n`;
     caddyfile += '    import hardened_security\n';
     caddyfile += `    root * /srv/${cname}\n`;
+    caddyfile += '    try_files {path} /index.html\n';
     caddyfile += '    file_server\n';
     caddyfile += '}\n';
   }
