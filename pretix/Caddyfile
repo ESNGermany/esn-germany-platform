@@ -1,9 +1,16 @@
+www.tickets.{$URL} {
+    import hardened_security
+    redir https://tickets.{$URL}{uri} permanent
+}
+
 tickets.{$URL} {
     import hardened_security
+    encode
     reverse_proxy http://pretix_pretix
 }
 
 :8080 {
+    encode
     reverse_proxy http://pretix_pretix {
         header_up Host tickets.{$URL}
         header_up Authorization "Basic {$METRICS_TOKEN}"

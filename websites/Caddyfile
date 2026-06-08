@@ -5,6 +5,7 @@ www.directus.{$URL} {
 
 directus.{$URL} {
     import hardened_security
+    encode
     reverse_proxy http://websites_directus:8055
 }
 

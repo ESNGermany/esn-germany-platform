@@ -15,7 +15,13 @@
 
 import config/*.Caddyfile
 
+www.grafana.{$URL} {
+    import hardened_security
+    redir https://grafana.{$URL}{uri} permanent
+}
+
 grafana.{$URL} {
     import hardened_security
+    encode
     reverse_proxy http://platform_grafana:3000
 }
