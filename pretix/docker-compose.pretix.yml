@@ -51,12 +51,17 @@ services:
 
   pretix_postgres:
     image: postgres:17-alpine
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - ./data/postgres/:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
     networks:
       - pretix_postgres
     profiles:
