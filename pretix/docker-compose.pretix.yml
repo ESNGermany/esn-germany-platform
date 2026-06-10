@@ -11,6 +11,7 @@ x-pretix-environment: &pretix-environment
   PRETIX_METRICS_USER: ${METRICS_USER}
   PRETIX_METRICS_PASSPHRASE: ${METRICS_PASSWORD}
   PRETIX_PRETIX_URL: https://tickets.${URL}
+  NUM_WORKERS: 8
 
 services:
   pretix_init:
