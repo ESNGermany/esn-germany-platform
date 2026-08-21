@@ -6,7 +6,7 @@ import type { WebsiteMainInformation } from './types.ts';
 // biome-ignore lint/style/noProcessEnv: <>
 // biome-ignore lint/complexity/useLiteralKeys: <>
 export const URL = process.env?.['URL'] ?? 'localhost';
-export const TMP_DIR = tmpdir();
+export const TMP_DIR = `${tmpdir()}/esn-germany-platform`;
 
 export const getMetaDescription = async (id: string) => {
   const response = await fetch(
