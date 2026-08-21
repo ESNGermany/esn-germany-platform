@@ -1,12 +1,13 @@
 import { exists, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { $ } from 'bun';
 import type { WebsiteMainInformation } from './types.ts';
 
 // biome-ignore lint/style/noProcessEnv: <>
 // biome-ignore lint/complexity/useLiteralKeys: <>
 export const URL = process.env?.['URL'] ?? 'localhost';
-export const TMP_DIR = tmpdir();
+export const TMP_DIR = `${tmpdir()}/esn-germany-platform`;
 
 export const getMetaDescription = async (id: string) => {
   const response = await fetch(
@@ -31,4 +32,16 @@ export const emptyDir = async (path: string) => {
 
   const files = await readdir(path);
   await Promise.all(files.map(async (file) => await rm(join(path, file), { recursive: true })));
+};
+
+/**
+ * Clones a git repository.
+ * 
+ * @param src repository adress
+ * @param target target folder
+ * @param branch git branch
+ */
+export const cloneRepo = async (repoUrl: string, target: string, branch?: string) => {
+  const branchArgs = branch ? ['-b', branch] : [];
+  await $`git clone ${branchArgs} ${repoUrl} ${target}`;
 };
