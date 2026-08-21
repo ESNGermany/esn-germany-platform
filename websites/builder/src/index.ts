@@ -5,9 +5,10 @@ import { buildCaddyfile } from './scripts/buildCaddyfile.ts';
 import { buildNational } from './scripts/buildNational.ts';
 import { emptyDir, TMP_DIR } from './utils.ts';
 
+await emptyDir(TMP_DIR);
 await buildNational();
 await buildAlumniSections(ALUMNI_CONFIGS, 'Alumni_site');
-await buildAlumniSections(SECTION_CONFIGS);
+await buildAlumniSections(SECTION_CONFIGS.slice(0,5));
 await buildCaddyfile();
 await emptyDir('./dist/sites');
 await cp(`${TMP_DIR}/new-sites`, './dist/sites', { recursive: true });
