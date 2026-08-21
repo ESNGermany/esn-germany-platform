@@ -11,6 +11,13 @@ export const ALUMNI_CONFIGS: Config[] = [
 
 export const SECTION_CONFIGS: Config[] = [
   {
+    id: 'b4519af5-b9a9-4a40-863d-f89f261bcba0',
+    name: 'ESN Aachen',
+    email: 'aachen@esn-germany.de',
+    cname: 'aachen',
+    redirects: ['esn-aachen.de'],
+  },
+  {
     id: '5753c9f7-9ef7-4754-a40c-338cd148b8f9',
     name: 'ESN Augsburg',
     email: 'augsburg@esn-germany.de',
@@ -59,6 +66,13 @@ export const SECTION_CONFIGS: Config[] = [
     redirects: ['esn-braunschweig.de'],
   },
   {
+    id: '28a95fd2-afb2-4ff7-9572-6ebca2c05b9d',
+    name: 'ESN Bremen',
+    email: 'bremen@esn-germany.de',
+    cname: 'bremen',
+    redirects: ['esnbremen.de'],
+  },
+  {
     id: '897abb43-a890-4621-8666-dc3307cdf119',
     name: 'ESN Darmstadt',
     email: 'darmstadt@esn-germany.de',
@@ -91,6 +105,13 @@ export const SECTION_CONFIGS: Config[] = [
     email: 'duesseldorf@esn-germany.de',
     cname: 'duesseldorf',
     redirects: ['esn-duesseldorf.de', 'esnduesseldorf.de'],
+  },
+  {
+    id: '55673f8e-5692-4179-9fb2-65e9bd88d521',
+    name: 'ESN Erlangen-Nürnberg',
+    email: 'erlangen-nuernberg@esn-germany.de',
+    cname: 'erlangen-nuernberg',
+    redirects: ['esn-erlangen-nuernberg.de'],
   },
   {
     id: '865b4a94-de84-423c-8a5b-61726ad522b9',
