@@ -83,6 +83,9 @@ services:
       # todo: needs directus update
       # METRICS_ENABLED: true
       # METRICS_TOKENS: ${METRICS_PASSWORD}
+      # todo: this should be improved
+      CORS_ENABLED: true
+      CORS_ORIGIN: true
     networks:
       - websites_postgis
       - websites_redis
