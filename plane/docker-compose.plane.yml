@@ -1,0 +1,194 @@
+x-db-env: &db-env
+  PGHOST: plane_db
+  PGDATABASE: plane
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_DB: plane
+  POSTGRES_PORT: 5432
+  PGDATA: /var/lib/postgresql/data
+
+x-redis-env: &redis-env
+  REDIS_HOST: plane_redis
+  REDIS_PORT: 6379
+  REDIS_URL: redis://plane_redis:6379/
+
+x-minio-env: &minio-env
+  MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+  MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+x-aws-s3-env: &aws-s3-env
+  AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+  AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+  AWS_S3_ENDPOINT_URL: http://plane_minio:9000
+  AWS_S3_BUCKET_NAME: uploads
+
+x-proxy-env: &proxy-env
+  APP_DOMAIN: plane.${URL}
+  FILE_SIZE_LIMIT: 104857600
+  BUCKET_NAME: uploads
+
+x-mq-env: &mq-env
+  RABBITMQ_HOST: plane_mq
+  RABBITMQ_PORT: 5672
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  RABBITMQ_DEFAULT_VHOST: plane
+  RABBITMQ_VHOST: plane
+
+x-live-env: &live-env
+  API_BASE_URL: http://plane_api:8000
+  LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+
+x-app-env: &app-env
+  WEB_URL: https://plane.${URL}
+  DEBUG: 0
+  CORS_ALLOWED_ORIGINS: https://plane.${URL}
+  GUNICORN_WORKERS: 1
+  USE_MINIO: 1
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@plane_db/plane
+  SECRET_KEY: ${SECRET_KEY}
+  AMQP_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@plane_mq:5672/plane
+  API_KEY_RATE_LIMIT: 60/minute
+  MINIO_ENDPOINT_SSL: 0
+  LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY}
+
+services:
+  plane_web:
+    image: makeplane/plane-frontend:v1.4.2
+    depends_on:
+      - plane_api
+      - plane_worker
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_space:
+    image: makeplane/plane-space:v1.4.2
+    depends_on:
+      - plane_api
+      - plane_worker
+      - plane_web
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_admin:
+    image: makeplane/plane-admin:v1.4.2
+    depends_on:
+      - plane_api
+      - plane_web
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_live:
+    image: makeplane/plane-live:v1.4.2
+    environment:
+      <<: [*live-env, *redis-env]
+    depends_on:
+      - plane_api
+      - plane_web
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_api:
+    image: makeplane/plane-backend:v1.4.2
+    command: ./bin/docker-entrypoint-api.sh
+    volumes:
+      - ./data/logs/api:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      - plane_db
+      - plane_redis
+      - plane_mq
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_worker:
+    image: makeplane/plane-backend:v1.4.2
+    command: ./bin/docker-entrypoint-worker.sh
+    volumes:
+      - ./data/logs/worker:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      - plane_api
+      - plane_db
+      - plane_redis
+      - plane_mq
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_beat_worker:
+    image: makeplane/plane-backend:v1.4.2
+    command: ./bin/docker-entrypoint-beat.sh
+    volumes:
+      - ./data/logs/beat-worker:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      - plane_api
+      - plane_db
+      - plane_redis
+      - plane_mq
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_migrator:
+    image: makeplane/plane-backend:v1.4.2
+    command: ./bin/docker-entrypoint-migrator.sh
+    volumes:
+      - ./data/logs/migrator:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      - plane_db
+      - plane_redis
+    profiles:
+      - plane
+    restart: on-failure
+
+  plane_db:
+    image: postgres:15.7-alpine
+    command: postgres -c 'max_connections=1000'
+    environment:
+      <<: *db-env
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_redis:
+    image: valkey/valkey:7.2.11-alpine
+    volumes:
+      - ./data/redis:/data
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_mq:
+    image: rabbitmq:3.13.6-management-alpine
+    environment:
+      <<: *mq-env
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    profiles:
+      - plane
+    restart: unless-stopped
+
+  plane_minio:
+    image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: server /export --console-address ":9090"
+    environment:
+      <<: *minio-env
+    volumes:
+      - ./data/uploads:/export
+    profiles:
+      - plane
+    restart: unless-stopped

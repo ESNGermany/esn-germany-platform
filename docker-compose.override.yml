@@ -13,6 +13,7 @@ services:
       - ./websites/data/builder/Caddyfile:/etc/caddy/config/websites.builder.Caddyfile:ro
       - ./websites/data/builder/sites:/srv:ro
       - ./vault/Caddyfile:/etc/caddy/config/vault.Caddyfile:ro
+      - ./plane/Caddyfile:/etc/caddy/config/plane.Caddyfile:ro
   platform_prometheus:
     volumes:
       - ./pretix/targets.yml:/etc/prometheus/config/pretix.targets.yml:ro

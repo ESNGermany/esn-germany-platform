@@ -1,0 +1,30 @@
+www.plane.{$URL} {
+    import hardened_security
+    redir https://plane.{$URL}{uri} permanent
+}
+
+plane.{$URL} {
+    import hardened_security
+    encode
+
+    request_body {
+        max_size 100MiB
+    }
+
+    redir /spaces /spaces/ permanent
+    reverse_proxy /spaces/* plane_space:3000
+
+    redir /god-mode /god-mode/ permanent
+    reverse_proxy /god-mode/* plane_admin:3000
+
+    reverse_proxy /live/* plane_live:3000
+
+    reverse_proxy /api/* plane_api:8000
+    reverse_proxy /auth/* plane_api:8000
+    reverse_proxy /static/* plane_api:8000
+
+    reverse_proxy /uploads/* plane_minio:9000
+    reverse_proxy /uploads plane_minio:9000
+
+    reverse_proxy /* plane_web:3000
+}
