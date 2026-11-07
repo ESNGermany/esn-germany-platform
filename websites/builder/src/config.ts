@@ -3,7 +3,7 @@ import type { Config } from './types.ts';
 export const ALUMNI_CONFIGS: Config[] = [
   {
     id: '446ce150-d720-4bed-b621-300d796844a0',
-    name: 'ESN Alumni',
+    name: 'ESN Alumni DE',
     email: 'alumni@esn-germany.de',
     cname: 'alumni',
   },
@@ -122,7 +122,7 @@ export const SECTION_CONFIGS: Config[] = [
   },
   {
     id: '845a678d-bc6b-4b1e-af22-b1fe99d95556',
-    name: 'ESN Frankfurt',
+    name: 'ESN Frankfurt (Main)',
     email: 'unifrankfurt@esn-germany.de',
     cname: 'unifrankfurt',
   },

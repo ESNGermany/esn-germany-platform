@@ -14,6 +14,7 @@ import {
   yarnBuild,
   yarnInstall,
 } from '../utils.ts';
+import { generateSectionBanner } from '../section-banner-generator/section-banner-generator.ts';
 
 // replacement logic
 const Placeholder = new Map<string, (config: Config) => string | Promise<string>>([
@@ -50,6 +51,7 @@ export const buildAlumniSections = async (configs: Config[], branch?: string) =>
   );
   await yarnInstall(sectionWebsiteDir);
   await rm(`${sectionWebsiteDir}/src/assets/logo/DE-logo-colour.png`);
+  await rm(`${sectionWebsiteDir}/src/assets/section-logos`, { recursive: true});
   await yarnBuild(sectionWebsiteDir);
   const sectionTemplateDir = `${sectionWebsiteDir}/dist/esn-sections-website/browser`;
   const placerholderFiles = await findPlaceholders(
@@ -63,13 +65,13 @@ export const buildAlumniSections = async (configs: Config[], branch?: string) =>
   console.log('Copying website template ...');
   await pMap(
     configs,
-    async ({ cname, email }) => {
+    async ({ cname, name }) => {
       const sectionDir = `${BUILD_DIR}/new-sites/${cname}`;
       await cp(sectionTemplateDir, sectionDir, { recursive: true });
-      await cp(
-        `${sectionTemplateDir}/assets/section-logos/${email}.png`,
-        `${sectionDir}/assets/logo/DE-logo-colour.png`,
-      );
+
+      // generate section banner
+      name = name.replace("ESN ", "")
+      await generateSectionBanner(name, `${sectionDir}/assets/logo/DE-logo-colour.png`)
     },
     { concurrency: MAX_CONCURRENCY },
   );
