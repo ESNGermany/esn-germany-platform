@@ -1,7 +1,8 @@
-import { exists, readdir, rm } from 'node:fs/promises';
+import { exists, mkdir, readdir, rename, rm, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { $ } from 'bun';
+import pMap from 'p-map';
 import type { WebsiteMainInformation } from './types.ts';
 
 const MetaDescriptionCache: Map<string, Promise<string>> = new Map();
@@ -42,6 +43,59 @@ export const emptyDir = async (path: string) => {
 };
 
 /**
+ * Moves the files of a folder into another folder, optionally leaving some of them behind.
+ * The folder structure is kept. Folders in `source` that are empty afterwards are removed,
+ * except `source` itself.
+ *
+ * Existing files in `destination` are overwritten. Only files are moved, so folders that
+ * contain no files are not recreated in `destination`. Source and destination have to be on
+ * the same filesystem, because the files are renamed and not copied.
+ *
+ * @param source - Folder to move the files out of.
+ * @param destination - Folder to move the files into. It is created if it doesn't exist.
+ * @param filter - Called with the path of each file, relative to `source`. The file is moved
+ *   if it returns `true` and stays in `source` if it returns `false`. Moves every file by default.
+ */
+export const mv = async (
+  source: string,
+  destination: string,
+  filter: (file: string) => boolean = () => true,
+) => {
+  const allFiles = await Array.fromAsync(
+    new Bun.Glob('**/*').scan({ cwd: source, dot: true, onlyFiles: true }),
+  );
+  const files = allFiles.filter(filter);
+
+  await pMap(
+    files,
+    async (file) => {
+      await mkdir(dirname(join(destination, file)), { recursive: true });
+      await rename(join(source, file), join(destination, file));
+    },
+    { concurrency: MAX_CONCURRENCY },
+  );
+
+  // deepest folders first, so that a folder is empty by the time its parent is tried
+  const directories = new Set<string>();
+  for (const file of files) {
+    for (let dir = dirname(file); dir !== '.'; dir = dirname(dir)) {
+      directories.add(dir);
+    }
+  }
+  for (const dir of [...directories].sort((a, b) => b.length - a.length)) {
+    try {
+      // biome-ignore lint/performance/noAwaitInLoops: the order matters, deepest folder first
+      await rmdir(join(source, dir));
+    } catch (error) {
+      // a folder that still holds a file that was left behind stays
+      if ((error as NodeJS.ErrnoException).code !== 'ENOTEMPTY') {
+        throw error;
+      }
+    }
+  }
+};
+
+/**
  * Builds a regex that matches any of the given symbols literally.
  *
  * @param symbols - Strings to match. Regex special characters are escaped.
@@ -72,17 +126,19 @@ export const findPlaceholders = async (dir: string, symbols: string[]) => {
   return files.filter((_, i) => re.test(texts[i] ?? ''));
 };
 
-export const gitClone = async (repo: string, dest: string, branch: string = 'main', depth: number = 1) => {
+export const gitClone = async (repo: string, dest: string, branch = 'main', depth = 1) => {
   const branchArgs = branch ? ['-b', branch] : [];
   return await $`git clone --depth ${depth} ${branchArgs} ${repo} ${dest}`;
 };
 
 export const yarnInstall = async (path: string) => {
-  console.log(`installing: ${path}`)
+  // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
+  console.log(`installing: ${path}`);
   return await $`yarn --cwd ${path} install --frozen-lockfile --mutex file:/tmp/yarn-install.lock`.quiet();
 };
 
 export const yarnBuild = async (path: string) => {
-  console.log(`building ${path}`)
+  // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
+  console.log(`building ${path}`);
   return await $`yarn --cwd ${path} build --configuration production`.quiet();
 };

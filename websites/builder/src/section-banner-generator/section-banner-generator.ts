@@ -32,6 +32,6 @@ export async function generateSectionBanner(sectionName: string, outPath: string
   ctx.fillText(sectionName, TEXT_POS_X, TEXT_POS_Y);
 
   // save image
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, canvas.toBuffer('image/png'));
 }
-
