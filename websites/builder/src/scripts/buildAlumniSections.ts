@@ -39,9 +39,9 @@ const Placeholder = new Map<string, (config: Config) => string | Promise<string>
   ['REPLACE_META_DESCRIPTION', (config: Config) => getMetaDescription(config.id)],
 ]);
 
-export const buildAlumniSections = async (configs: Config[], branch?: string) => {
+export const buildAlumniSections = async (configs: Config[], branch: string) => {
   // Build section website template
-  const sectionWebsiteDir = `${BUILD_DIR}/esn-section-website`;
+  const sectionWebsiteDir = `${BUILD_DIR}/esn-section-website/${branch}`;
 
   // build template
   await gitClone(
@@ -59,10 +59,7 @@ export const buildAlumniSections = async (configs: Config[], branch?: string) =>
     Array.from(Placeholder.keys()),
   );
 
-  // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-  console.log(`Found ${placerholderFiles.length} files with placeholders.`);
-  // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-  console.log('Copying website template ...');
+  // copy website template
   await pMap(
     configs,
     async ({ cname, name }) => {
@@ -76,8 +73,7 @@ export const buildAlumniSections = async (configs: Config[], branch?: string) =>
     { concurrency: MAX_CONCURRENCY },
   );
 
-  // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-  console.log('Replacing placeholder values ...');
+  // replace placerholder in files
   await pMap(
     placerholderFiles,
     async ([f, matches]) => {
@@ -110,14 +106,14 @@ export const buildAlumniSections = async (configs: Config[], branch?: string) =>
     { concurrency: MAX_CONCURRENCY },
   );
 
-  // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-  console.log('Hashing files ...');
+
+  // rehashing files
   await pMap(
     configs,
     async ({ cname }) => {
       // ngsw-config joins its arguments onto process.cwd(), so absolute paths break.
       // Run from the template repo and pass paths relative to it.
-      await $`./node_modules/.bin/ngsw-config ../new-sites/${cname} ngsw-config.json /`.cwd(
+      await $`./node_modules/.bin/ngsw-config ../../new-sites/${cname} ngsw-config.json /`.cwd(
         sectionWebsiteDir,
       );
     },

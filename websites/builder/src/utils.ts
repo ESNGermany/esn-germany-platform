@@ -84,15 +84,17 @@ export const findPlaceholders = async (
   return found.filter(([, matches]) => matches.length > 0);
 };
 
-export const gitClone = async (repo: string, dest: string, branch?: string) => {
+export const gitClone = async (repo: string, dest: string, branch: string = 'main', depth: number = 1) => {
   const branchArgs = branch ? ['-b', branch] : [];
-  return await $`git clone ${branchArgs} ${repo} ${dest}`;
+  return await $`git clone --depth ${depth} ${branchArgs} ${repo} ${dest}`;
 };
 
 export const yarnInstall = async (path: string) => {
-  return await $`yarn --cwd ${path} install`;
+  console.log(`installing: ${path}`)
+  return await $`yarn --cwd ${path} install --frozen-lockfile --mutex file:/tmp/yarn-install.lock`.quiet();
 };
 
 export const yarnBuild = async (path: string) => {
-  return await $`yarn --cwd ${path} build --configuration production`;
+  console.log(`building ${path}`)
+  return await $`yarn --cwd ${path} build --configuration production`.quiet();
 };

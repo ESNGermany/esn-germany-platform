@@ -8,23 +8,25 @@ import { BUILD_DIR, emptyDir } from './utils.ts';
 await emptyDir(BUILD_DIR); // cleanup folder from last builds
 
 // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-console.log('[1/5] Building national website');
-await buildNational();
+console.log("--- Build started ---")
+
+const start_time = performance.now();
+
+await Promise.all([
+    buildNational(),
+    buildAlumniSections(ALUMNI_CONFIGS, 'Alumni_site'),
+    buildAlumniSections(SECTION_CONFIGS, 'main')
+]);
 
 // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-console.log('[2/5] Building alumni website');
-await buildAlumniSections(ALUMNI_CONFIGS, 'Alumni_site');
-
-// biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-console.log('[3/5] Building sections websites');
-await buildAlumniSections(SECTION_CONFIGS);
-
-// biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-console.log('[4/5] Building caddy file');
+console.log('Building caddy file');
 await buildCaddyfile();
 
 // biome-ignore lint/suspicious/noConsole: CLI progress output is intended
-console.log('[5/5] Cleaning up');
+console.log('Cleaning up');
 await emptyDir('./dist/sites');
 await cp(`${BUILD_DIR}/new-sites`, './dist/sites', { recursive: true });
 await rm(`${BUILD_DIR}/new-sites`, { recursive: true });
+
+// biome-ignore lint/suspicious/noConsole: CLI progress output is intended
+console.log(`Build took ${((performance.now() - start_time) / 1000).toFixed(1)}s`);
