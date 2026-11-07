@@ -6,6 +6,8 @@ www.directus.{$URL} {
 directus.{$URL} {
     import hardened_security
     encode
+    @assets path /assets/*
+    request_header @assets -Cookie
     reverse_proxy http://websites_directus:8055
 }
 
