@@ -41,47 +41,35 @@ export const emptyDir = async (path: string) => {
   await Promise.all(files.map(async (file) => await rm(join(path, file), { recursive: true })));
 };
 
-export const findPlaceholders = async (
-  dir: string,
-  symbols: string[],
-): Promise<[file: string, matches: [pos: number, len: number][]][]> => {
-  // Recursively searches all files in a folder for symbols and returns them by file, position and length
-
-  // build regex
-  const alternatives = [...new Set(symbols)]
-    .filter((s) => s.length > 0)
+/**
+ * Builds a regex that matches any of the given symbols literally.
+ *
+ * @param symbols - Strings to match. Regex special characters are escaped.
+ * @param flags - Regex flags, for example `g` to match every occurrence.
+ */
+export const symbolRegex = (symbols: string[], flags?: string) => {
+  const alternatives = [...symbols]
     .sort((a, b) => b.length - a.length) // longest first resolves prefix collisions
     .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 
-  if (alternatives.length === 0) {
-    return [];
-  }
+  return new RegExp(alternatives.join('|'), flags);
+};
 
-  const re = new RegExp(alternatives.join('|'), 'g');
-
-  const files: string[] = [];
-  const glob = new Bun.Glob('**/*.{html,htm,js,xml,txt,webmanifest}');
-  for await (const file of glob.scan(dir)) {
-    files.push(file);
-  }
-
-  files.sort();
-
-  const found = await Promise.all(
-    files.map(async (file): Promise<[string, [number, number][]]> => {
-      const text = await Bun.file(join(dir, file)).text();
-      const matches: [number, number][] = [];
-      for (const m of text.matchAll(re)) {
-        if (m.index === undefined) {
-          throw new Error(`Missing match index in ${file}`);
-        }
-        matches.push([m.index, m[0].length]);
-      }
-      return [file, matches];
-    }),
+/**
+ * Recursively searches the text files of a folder for any of the given symbols.
+ *
+ * @param dir - Folder to search.
+ * @param symbols - Placeholder strings to look for.
+ * @returns Paths, relative to `dir`, of the files that contain at least one symbol.
+ */
+export const findPlaceholders = async (dir: string, symbols: string[]) => {
+  const re = symbolRegex(symbols);
+  const files = await Array.fromAsync(
+    new Bun.Glob('**/*.{html,htm,js,xml,txt,webmanifest}').scan(dir),
   );
+  const texts = await Promise.all(files.map((file) => Bun.file(join(dir, file)).text()));
 
-  return found.filter(([, matches]) => matches.length > 0);
+  return files.filter((_, i) => re.test(texts[i] ?? ''));
 };
 
 export const gitClone = async (repo: string, dest: string, branch: string = 'main', depth: number = 1) => {

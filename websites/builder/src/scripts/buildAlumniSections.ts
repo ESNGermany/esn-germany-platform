@@ -11,14 +11,13 @@ import {
   getMetaDescription,
   gitClone,
   MAX_CONCURRENCY,
+  symbolRegex,
   URL,
   yarnBuild,
   yarnInstall,
 } from '../utils.ts';
 
 const SECTION_WEBSITE_REPO = 'https://github.com/ESNGermany/esn-section-website.git';
-
-type PlaceholderMatches = [pos: number, len: number][];
 
 // replacement logic
 const Placeholder = new Map<string, (config: Config) => string | Promise<string>>([
@@ -42,6 +41,7 @@ const Placeholder = new Map<string, (config: Config) => string | Promise<string>
   ],
   ['REPLACE_META_DESCRIPTION', (config: Config) => getMetaDescription(config.id)],
 ]);
+const PLACEHOLDER_REGEX = symbolRegex(Array.from(Placeholder.keys()), 'g');
 
 /**
  * Clones, installs and builds the section website template.
@@ -82,34 +82,35 @@ const copyTemplate = async (templateDir: string, configs: Config[]) => {
 };
 
 /**
- * Replaces all placeholders in a file's text for a single section.
+ * Resolves the value of every placeholder for a single section.
+ *
+ * @param config - Section the placeholder values are taken from.
+ * @returns The value of each placeholder, by placeholder name.
+ */
+const resolvePlaceholders = async (config: Config) => {
+  const entries = await Promise.all(
+    Array.from(Placeholder, async ([key, resolve]) => [key, await resolve(config)] as const),
+  );
+
+  return new Map(entries);
+};
+
+/**
+ * Replaces all placeholders in a file's text.
  *
  * @param text - Content of the template file.
- * @param matches - Placeholder positions in `text`, sorted from last to first, so that
- *   replacing one placeholder doesn't shift the positions of the remaining ones.
- * @param config - Section the placeholder values are taken from.
+ * @param values - Value of each placeholder, as returned by `resolvePlaceholders`.
  * @returns The text with every placeholder replaced by its value.
- * @throws If a match in `text` is not a known placeholder.
+ * @throws If a placeholder in `text` has no value.
  */
-const replacePlaceholdersInText = async (
-  text: string,
-  matches: PlaceholderMatches,
-  config: Config,
-) => {
-  let result = text;
-
-  for (const [pos, len] of matches) {
-    const key = result.slice(pos, pos + len);
-    const resolve = Placeholder.get(key);
-    if (!resolve) {
+const replacePlaceholdersInText = (text: string, values: Map<string, string>) => {
+  return text.replace(PLACEHOLDER_REGEX, (key) => {
+    const value = values.get(key);
+    if (value === undefined) {
       throw new Error(`Unknown placeholder: ${key}`);
     }
-    const value = await resolve(config);
-
-    result = result.slice(0, pos) + value + result.slice(pos + len);
-  }
-
-  return result;
+    return value;
+  });
 };
 
 /**
@@ -120,16 +121,23 @@ const replacePlaceholdersInText = async (
  */
 const replacePlaceholders = async (templateDir: string, configs: Config[]) => {
   const placeholderFiles = await findPlaceholders(templateDir, Array.from(Placeholder.keys()));
+  const sections = await Promise.all(
+    configs.map(async (config) => ({
+      cname: config.cname,
+      values: await resolvePlaceholders(config),
+    })),
+  );
 
   await pMap(
     placeholderFiles,
-    async ([file, matches]) => {
+    async (file) => {
       const text = await Bun.file(`${templateDir}/${file}`).text();
-      const lastToFirst = [...matches].sort((a, b) => b[0] - a[0]);
 
-      for (const config of configs) {
-        const replaced = await replacePlaceholdersInText(text, lastToFirst, config);
-        await Bun.write(`${BUILD_DIR}/new-sites/${config.cname}/${file}`, replaced);
+      for (const { cname, values } of sections) {
+        await Bun.write(
+          `${BUILD_DIR}/new-sites/${cname}/${file}`,
+          replacePlaceholdersInText(text, values),
+        );
       }
     },
     { concurrency: MAX_CONCURRENCY },
